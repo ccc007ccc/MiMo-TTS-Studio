@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import { useConfigStore } from '@/stores/config'
+import { setLocale, type Locale } from '@/i18n'
+import { useI18n } from 'vue-i18n'
 import { X, Eye, EyeOff } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-const props = defineProps<{ open: boolean }>()
+defineProps<{ open: boolean }>()
 const emit = defineEmits<{ 'update:open': [val: boolean] }>()
 
 const config = useConfigStore()
+const { t, locale } = useI18n()
 const showKey = ref(false)
 
+const currentLocale = computed<Locale>({
+  get: () => locale.value as Locale,
+  set: (v) => setLocale(v),
+})
 </script>
 
 <template>
@@ -18,20 +25,19 @@ const showKey = ref(false)
         <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="emit('update:open', false)" />
         <div class="relative w-full max-w-lg mx-4 glass rounded-2xl p-6 space-y-5">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold">设置</h2>
+            <h2 class="text-lg font-semibold">{{ t('settings.title') }}</h2>
             <button @click="emit('update:open', false)" class="text-white/40 hover:text-white/70">
               <X :size="20" />
             </button>
           </div>
 
-          <!-- API Key -->
           <div class="space-y-1.5">
-            <label class="text-xs text-white/50 font-medium">API Key</label>
+            <label class="text-xs text-white/50 font-medium">{{ t('settings.apiKey') }}</label>
             <div class="relative">
               <input
                 :type="showKey ? 'text' : 'password'"
                 v-model="config.apiKey"
-                placeholder="sk-..."
+                :placeholder="t('settings.apiKeyPlaceholder')"
                 class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm pr-10 focus:border-primary-500/50 transition-colors"
               />
               <button
@@ -44,24 +50,33 @@ const showKey = ref(false)
             </div>
           </div>
 
-          <!-- Base URL -->
           <div class="space-y-1.5">
-            <label class="text-xs text-white/50 font-medium">API 地址</label>
+            <label class="text-xs text-white/50 font-medium">{{ t('settings.baseUrl') }}</label>
             <input
               v-model="config.baseUrl"
               class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-primary-500/50 transition-colors"
             />
           </div>
 
-          <!-- Default Format -->
           <div class="space-y-1.5">
-            <label class="text-xs text-white/50 font-medium">默认格式</label>
+            <label class="text-xs text-white/50 font-medium">{{ t('settings.defaultFormat') }}</label>
             <select
               v-model="config.defaultFormat"
               class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-primary-500/50 transition-colors appearance-none cursor-pointer"
             >
-              <option value="wav" class="bg-surface-900">WAV (无损)</option>
-              <option value="mp3" class="bg-surface-900">MP3 (压缩)</option>
+              <option value="wav" class="bg-surface-900">{{ t('settings.formatWavLossless') }}</option>
+              <option value="mp3" class="bg-surface-900">{{ t('settings.formatMp3Compressed') }}</option>
+            </select>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-xs text-white/50 font-medium">{{ t('settings.language') }}</label>
+            <select
+              v-model="currentLocale"
+              class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-primary-500/50 transition-colors appearance-none cursor-pointer"
+            >
+              <option value="zh-CN" class="bg-surface-900">简体中文</option>
+              <option value="en-US" class="bg-surface-900">English</option>
             </select>
           </div>
 
@@ -70,7 +85,7 @@ const showKey = ref(false)
               @click="emit('update:open', false)"
               class="px-4 py-2 text-sm text-white/60 hover:text-white/80 transition-colors"
             >
-              关闭
+              {{ t('settings.close') }}
             </button>
           </div>
         </div>
