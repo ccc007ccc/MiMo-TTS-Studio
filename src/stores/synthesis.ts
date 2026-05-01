@@ -1,47 +1,53 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { historyDB, type HistoryRecord } from '@/api/storage'
 
-export interface HistoryItem {
-  id: string
-  text: string
-  voice: string
-  style?: string
-  model: string
-  format: string
-  audioBase64: string
+const MAX_HISTORY = 100
+
+export interface HistoryView extends HistoryRecord {
   audioUrl: string
-  createdAt: number
 }
 
 export const useSynthesisStore = defineStore('synthesis', () => {
   const isGenerating = ref(false)
-  const history = ref<HistoryItem[]>(JSON.parse(localStorage.getItem('tts_history') || '[]'))
+  const history = ref<HistoryView[]>([])
+  const loaded = ref(false)
 
-  function saveHistory() {
-    const lite = history.value.map(({ audioBase64, ...rest }) => rest)
-    localStorage.setItem('tts_history', JSON.stringify(lite.slice(0, 3)))
+  function toView(rec: HistoryRecord): HistoryView {
+    return { ...rec, audioUrl: URL.createObjectURL(rec.audioBlob) }
   }
 
-  function addHistory(item: HistoryItem) {
-    history.value.unshift(item)
-    if (history.value.length > 3) history.value.pop()
-    saveHistory()
+  async function loadHistory() {
+    if (loaded.value) return
+    const records = await historyDB.getAll()
+    history.value = records.map(toView)
+    loaded.value = true
   }
 
-  function removeHistory(id: string) {
+  async function addHistory(rec: HistoryRecord) {
+    await historyDB.add(rec)
+    history.value.unshift(toView(rec))
+    if (history.value.length > MAX_HISTORY) {
+      const trimmed = history.value.splice(MAX_HISTORY)
+      trimmed.forEach((h) => URL.revokeObjectURL(h.audioUrl))
+      await historyDB.trim(MAX_HISTORY)
+    }
+  }
+
+  async function removeHistory(id: string) {
     const idx = history.value.findIndex((h) => h.id === id)
     if (idx !== -1) {
       URL.revokeObjectURL(history.value[idx].audioUrl)
       history.value.splice(idx, 1)
-      saveHistory()
+      await historyDB.remove(id)
     }
   }
 
-  function clearHistory() {
+  async function clearHistory() {
     history.value.forEach((h) => URL.revokeObjectURL(h.audioUrl))
     history.value = []
-    saveHistory()
+    await historyDB.clear()
   }
 
-  return { isGenerating, history, addHistory, removeHistory, clearHistory }
+  return { isGenerating, history, loadHistory, addHistory, removeHistory, clearHistory }
 })

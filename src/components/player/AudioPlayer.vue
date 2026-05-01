@@ -4,11 +4,12 @@ import { useAudioPlayer } from '@/composables/useAudioPlayer'
 import WaveformCanvas from './WaveformCanvas.vue'
 import { Play, Pause, Download, RotateCcw } from 'lucide-vue-next'
 import { downloadAudio } from '@/api/tts'
+import type { AudioFormat } from '@/types'
 
 const props = defineProps<{
   audioUrl: string
   audioBase64: string
-  format: string
+  format: AudioFormat
   filename?: string
   waveformData?: number[]
 }>()
